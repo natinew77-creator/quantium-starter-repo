@@ -3,13 +3,17 @@ Task 5: Unit Tests for Quantium Soul Foods Dashboard
 
 This module contains unit tests for both the data processing script
 and the Dash application.
+
+The three required tests for the Dash app verify:
+1. The header is present
+2. The visualisation is present
+3. The region picker is present
 """
 
 import pytest
 import pandas as pd
 import os
 import sys
-from dash.testing.application_runners import import_app
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -68,63 +72,91 @@ class TestDataProcessor:
         assert os.path.exists(output_path), f"Output file should exist at {output_path}"
 
 
+# ============================================================================
+# Task 5: Dash Application Tests
+# These tests verify the three required elements are present in the app layout:
+# 1. The header is present
+# 2. The visualisation is present
+# 3. The region picker is present
+# ============================================================================
+
+from dash import html, dcc
+from app import app
+
+
+def find_component_by_id(layout, component_id):
+    """
+    Recursively search for a component with the given ID in the layout.
+    Returns True if found, False otherwise.
+    """
+    if hasattr(layout, 'id') and layout.id == component_id:
+        return True
+    
+    if hasattr(layout, 'children'):
+        children = layout.children
+        if children is None:
+            return False
+        if isinstance(children, (list, tuple)):
+            for child in children:
+                if find_component_by_id(child, component_id):
+                    return True
+        else:
+            return find_component_by_id(children, component_id)
+    
+    return False
+
+
+def find_component_by_type(layout, component_type):
+    """
+    Recursively search for a component of the given type in the layout.
+    Returns True if found, False otherwise.
+    """
+    if isinstance(layout, component_type):
+        return True
+    
+    if hasattr(layout, 'children'):
+        children = layout.children
+        if children is None:
+            return False
+        if isinstance(children, (list, tuple)):
+            for child in children:
+                if find_component_by_type(child, component_type):
+                    return True
+        else:
+            return find_component_by_type(children, component_type)
+    
+    return False
+
+
 class TestDashApp:
-    """Unit tests for the Dash application."""
+    """
+    Unit tests for the Dash application layout.
+    These tests verify the three required components are present.
+    """
     
-    def test_app_header_h1_exists(self, dash_duo):
-        """Test that the app has a header with the correct title."""
-        app = import_app('app')
-        dash_duo.start_server(app)
-        
-        # Wait for the app to load
-        dash_duo.wait_for_element('h1', timeout=10)
-        
-        # Check that the header contains the expected text
-        header = dash_duo.find_element('h1')
-        assert "Soul Foods" in header.text or "Pink Morsel" in header.text
+    def test_header_exists(self):
+        """
+        Test 1: Verify the header is present.
+        The app should have an H1 header element.
+        """
+        layout = app.layout
+        assert find_component_by_type(layout, html.H1), "Header (H1) should be present in the app layout"
     
-    def test_region_radio_exists(self, dash_duo):
-        """Test that the region radio button component exists."""
-        app = import_app('app')
-        dash_duo.start_server(app)
-        
-        # Wait for the radio buttons to appear
-        dash_duo.wait_for_element('#region-radio', timeout=10)
-        
-        # Check that it exists
-        radio = dash_duo.find_element('#region-radio')
-        assert radio is not None
+    def test_visualization_exists(self):
+        """
+        Test 2: Verify the visualisation (chart) is present.
+        The app should have a Graph component with id 'sales-chart'.
+        """
+        layout = app.layout
+        assert find_component_by_id(layout, 'sales-chart'), "Visualization (Graph with id='sales-chart') should be present"
     
-    def test_chart_exists(self, dash_duo):
-        """Test that the sales chart exists."""
-        app = import_app('app')
-        dash_duo.start_server(app)
-        
-        # Wait for the chart to appear
-        dash_duo.wait_for_element('#sales-chart', timeout=10)
-        
-        # Check that it exists
-        chart = dash_duo.find_element('#sales-chart')
-        assert chart is not None
-    
-    def test_summary_stats_exists(self, dash_duo):
-        """Test that the summary statistics section exists."""
-        app = import_app('app')
-        dash_duo.start_server(app)
-        
-        # Wait for the summary stats to appear
-        dash_duo.wait_for_element('#summary-stats', timeout=10)
-        
-        # Check that it exists
-        stats = dash_duo.find_element('#summary-stats')
-        assert stats is not None
-
-
-# Pytest fixture configuration for Dash testing
-@pytest.fixture
-def dash_duo(dash_duo):
-    """Fixture for Dash application testing."""
-    return dash_duo
+    def test_region_picker_exists(self):
+        """
+        Test 3: Verify the region picker (radio buttons) is present.
+        The app should have a RadioItems component with id 'region-radio'.
+        """
+        layout = app.layout
+        assert find_component_by_id(layout, 'region-radio'), "Region picker (RadioItems with id='region-radio') should be present"
 
 
 if __name__ == '__main__':
